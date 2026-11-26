@@ -71,6 +71,20 @@ int run_jitter(int argc, char *argv[])
         return 1;
     }
 
+    /*
+     * Allocate and fault-in the sample buffer BEFORE the timer is armed.
+     * If allocation/page-faults happen while pulses arrive, the channel's
+     * pulse queue overflows and drops pulses, permanently shifting the
+     * expected schedule (observed as exact +N*period step offsets).
+     */
+    int64_t *samples = calloc((size_t)iterations, sizeof(int64_t));
+    if (samples == NULL) {
+        detlab_emit_error("jitter", "out of memory for %ld samples",
+                          iterations);
+        return 1;
+    }
+    memset(samples, 0, (size_t)iterations * sizeof(int64_t));
+
     int chid = ChannelCreate(0);
     if (chid == -1) {
         detlab_emit_error("jitter", "ChannelCreate: %s", strerror(errno));
@@ -105,13 +119,6 @@ int run_jitter(int argc, char *argv[])
     its.it_interval = its.it_value;
     if (timer_settime(timerid, 0, &its, NULL) != 0) {
         detlab_emit_error("jitter", "timer_settime: %s", strerror(errno));
-        return 1;
-    }
-
-    int64_t *samples = calloc((size_t)iterations, sizeof(int64_t));
-    if (samples == NULL) {
-        detlab_emit_error("jitter", "out of memory for %ld samples",
-                          iterations);
         return 1;
     }
 
