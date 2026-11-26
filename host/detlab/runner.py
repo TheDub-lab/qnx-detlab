@@ -20,18 +20,36 @@ class ProbeError(Exception):
     """Probe ran but failed, or produced output we could not parse."""
 
 
-def _normalize(result_id, probe_name, doc):
+def _normalize(result_id, probe_name, doc, args=None):
     if "error" in doc:
         raise ProbeError(f"probe {probe_name} failed: {doc['error']}")
     samples = doc.get("samples_ns", [])
     if not samples:
         raise ProbeError(f"probe {probe_name} returned no samples")
+
+    summary = metrics.summarize(samples)
+    # Inter-arrival spacing summary (needs the nominal period).
+    period_ns = None
+    sources = []
+    if args:
+        sources.append(args.get("period_us"))
+    meta = doc.get("meta", {})
+    sources.append(meta.get("period_us"))
+    for value in sources:
+        if value is not None:
+            period_ns = float(value) * 1000.0
+            break
+    if period_ns is not None and len(samples) >= 2:
+        summary["spacing"] = metrics.summarize(
+            metrics.spacing_series(samples, period_ns)
+        )
+
     return {
         "id": result_id,
         "probe": probe_name,
-        "meta": doc.get("meta", {}),
+        "meta": meta,
         "samples_ns": samples,
-        "summary": metrics.summarize(samples),
+        "summary": summary,
     }
 
 
@@ -45,7 +63,7 @@ def run_local(result_id, probe_name, args, binary, timeout=120):
         raise ProbeError(
             f"probe exited {proc.returncode}: {proc.stdout.decode()[:200]}"
         )
-    return _normalize(result_id, probe_name, json.loads(proc.stdout))
+    return _normalize(result_id, probe_name, json.loads(proc.stdout), args)
 
 
 def run_remote(result_id, probe_name, args, target, timeout=900,
@@ -53,7 +71,7 @@ def run_remote(result_id, probe_name, args, target, timeout=900,
     """Run the probe on a target over SSH; target exposes exec(cmd, timeout)."""
     kv = " ".join(f"{k}={v}" for k, v in (args or {}).items())
     stdout = target.exec(f"{remote_binary} {probe_name} {kv}", timeout=timeout)
-    return _normalize(result_id, probe_name, json.loads(stdout))
+    return _normalize(result_id, probe_name, json.loads(stdout), args)
 
 
 def run_scenario(scenario, mode, binary=None, target=None):

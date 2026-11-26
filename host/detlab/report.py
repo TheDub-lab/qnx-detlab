@@ -21,6 +21,13 @@ _METRIC_ROWS = (
     ("max_ns", "max"),
 )
 
+_SPACING_ROWS = (
+    ("min_ns", "sp-min"),
+    ("p50_ns", "sp-p50"),
+    ("p99_ns", "sp-p99"),
+    ("max_ns", "sp-max"),
+)
+
 _PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <title>detlab report — __SCENARIO__</title>
@@ -60,14 +67,18 @@ def _svg_histogram(result, width=720, height=160):
 
 def _results_table(results):
     header = "".join(f"<th>{h}</th>" for _, h in _METRIC_ROWS)
+    header += "".join(f"<th>{h}</th>" for _, h in _SPACING_ROWS)
     rows = []
     for r in results:
         cells = "".join(
             f"<td>{_fmt(r['summary'].get(k))}</td>" for k, _ in _METRIC_ROWS
         )
-        rows.append(
-            f'<tr><td>{html.escape(r["id"])}</td>{cells}</tr>'
+        spacing = r["summary"].get("spacing")
+        cells += "".join(
+            f"<td>{_fmt(spacing.get(k)) if spacing else '—'}</td>"
+            for k, _ in _SPACING_ROWS
         )
+        rows.append(f'<tr><td>{html.escape(r["id"])}</td>{cells}</tr>')
     return (
         f"<table><tr><th>scenario:probe</th>{header}</tr>{''.join(rows)}</table>"
     )

@@ -37,6 +37,23 @@ def summarize(samples_ns):
     }
 
 
+def spacing_series(samples_ns, period_ns):
+    """Inter-arrival spacing deviations, host-side from raw offset samples.
+
+    spacing_i = period + (offset_i - offset_{i-1}) — reconstructs the
+    time between consecutive wakeups. Unlike the raw offsets (which
+    measure cumulative schedule fidelity and absorb any one-time slip
+    forever), spacing measures per-wakeup consistency: what an RT
+    application actually experiences at each wakeup.
+    """
+    if len(samples_ns) < 2:
+        raise ValueError("spacing needs at least two samples")
+    return [
+        period_ns + (samples_ns[i] - samples_ns[i - 1])
+        for i in range(1, len(samples_ns))
+    ]
+
+
 def histogram(samples_ns, bins=40):
     """Return (bin_floor_ns, bin_width_ns, counts) for rendering."""
     if not samples_ns:

@@ -43,6 +43,19 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(width, 1)
         self.assertEqual(sum(counts), 2)
 
+    def test_spacing_series_reconstructs_period(self):
+        # offsets: constant 10us slip at index 2 (one-time schedule step)
+        samples = [5, 6, 10010, 10014, 10019]
+        spacing = metrics.spacing_series(samples, period_ns=1000)
+        # spacing around the step is ~1ms + 10000; elsewhere ~1ms + jitter
+        self.assertAlmostEqual(spacing[0], 1001.0)
+        self.assertAlmostEqual(spacing[1], 11004.0)
+        self.assertAlmostEqual(spacing[3], 1005.0)
+
+    def test_spacing_series_needs_two_samples(self):
+        with self.assertRaises(ValueError):
+            metrics.spacing_series([5], period_ns=1000)
+
     def test_fmt_ns_units(self):
         self.assertEqual(metrics.fmt_ns(500), "500 ns")
         self.assertEqual(metrics.fmt_ns(1500), "1.50 us")
