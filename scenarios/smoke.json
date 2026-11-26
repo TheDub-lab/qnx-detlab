@@ -1,0 +1,10 @@
+{
+  "name": "smoke",
+  "description": "Fast end-to-end pipeline check against a live target (~10 s).",
+  "probes": [
+    {"probe": "jitter",
+     "args": {"period_us": 1000, "iterations": 3000, "warmup": 100, "policy": "fifo", "priority": 50}},
+    {"probe": "jitter",
+     "args": {"period_us": 1000, "iterations": 3000, "warmup": 100, "policy": "other", "priority": 10}}
+  ]
+}

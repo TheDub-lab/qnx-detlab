@@ -26,6 +26,7 @@ def _load_json(path):
 
 
 def _dump(doc, path):
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(doc, f, indent=2)
     return path

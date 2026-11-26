@@ -28,9 +28,18 @@ class QemuTargetError(Exception):
 
 class QemuTarget:
     """One running QNX VM. Supports the exec() contract runner.run_remote
-    expects; keep deployment and execution behind that single boundary."""
+    expects; keep deployment and execution behind that single boundary.
+
+    Two modes (config["mode"]):
+      "qsti"     - launch/stop a QSTI VM via mkqnximage (UNVERIFIED, needs
+                   brctl/bridge setup as root on the host)
+      "existing" - attach to an already-running VM over SSH (e.g. launched
+                   by scripts/run-qnx-qemu.sh with a hostfwd port). No
+                   lifecycle management; start()/stop() are no-ops.
+    """
 
     def __init__(self, config):
+        self.mode = config.get("mode", "qsti")
         self.qsti_dir = config.get(
             "qsti_dir",
             os.environ.get(
@@ -43,10 +52,16 @@ class QemuTarget:
         self.getip_cmd = config.get("getip_cmd", "mkqnximage --getip")
         self.stop_cmd = config.get("stop_cmd", "mkqnximage --stop")
         self.ssh_port = int(config.get("ssh_port", 22))
+        self.ssh_key = config.get("ssh_key")  # optional identity file
         self.vm = None
-        self.ip = None
+        if self.mode == "existing":
+            self.ip = config["host"]
+        else:
+            self.ip = None
 
     def start(self, boot_timeout=180):
+        if self.mode == "existing":
+            return self
         if not os.path.isdir(self.qsti_dir):
             raise QemuTargetError(
                 f"QSTI runtime dir not found: {self.qsti_dir} "
@@ -90,15 +105,17 @@ class QemuTarget:
         return None
 
     def _ssh_argv(self, cmd):
-        return [
+        argv = [
             "ssh",
             "-o", "BatchMode=yes",
             "-o", "StrictHostKeyChecking=accept-new",
             "-o", f"ConnectTimeout=10",
             "-p", str(self.ssh_port),
-            f"{self.ssh_user}@{self.ip}",
-            cmd,
         ]
+        if self.ssh_key:
+            argv += ["-i", self.ssh_key]
+        argv += [f"{self.ssh_user}@{self.ip}", cmd]
+        return argv
 
     def exec(self, cmd, timeout=120):
         """Run a shell command on the target; return stdout. Raises
@@ -115,18 +132,16 @@ class QemuTarget:
         return proc.stdout
 
     def put(self, local_path, remote_path):
-        proc = subprocess.run(
-            [
-                "scp",
-                "-o", "BatchMode=yes",
-                "-o", "StrictHostKeyChecking=accept-new",
-                "-P", str(self.ssh_port),
-                local_path,
-                f"{self.ssh_user}@{self.ip}:{remote_path}",
-            ],
-            capture_output=True,
-            timeout=120,
-        )
+        argv = [
+            "scp",
+            "-o", "BatchMode=yes",
+            "-o", "StrictHostKeyChecking=accept-new",
+            "-P", str(self.ssh_port),
+        ]
+        if self.ssh_key:
+            argv += ["-i", self.ssh_key]
+        argv += [local_path, f"{self.ssh_user}@{self.ip}:{remote_path}"]
+        proc = subprocess.run(argv, capture_output=True, timeout=120)
         if proc.returncode != 0:
             raise QemuTargetError(f"scp failed: {proc.stderr.decode()[:300]}")
 

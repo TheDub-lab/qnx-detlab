@@ -48,10 +48,11 @@ def run_local(scenario_name, probe_name, args, binary, timeout=120):
     return _normalize(scenario_name, probe_name, json.loads(proc.stdout))
 
 
-def run_remote(scenario_name, probe_name, args, target, timeout=120):
+def run_remote(scenario_name, probe_name, args, target, timeout=900,
+               remote_binary="/tmp/detlab-probe"):
     """Run the probe on a target over SSH; target exposes exec(cmd, timeout)."""
     kv = " ".join(f"{k}={v}" for k, v in (args or {}).items())
-    stdout = target.exec(f"detlab-probe {probe_name} {kv}", timeout=timeout)
+    stdout = target.exec(f"{remote_binary} {probe_name} {kv}", timeout=timeout)
     return _normalize(scenario_name, probe_name, json.loads(stdout))
 
 
