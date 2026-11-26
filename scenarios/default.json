@@ -2,11 +2,14 @@
   "name": "default",
   "description": "Standard scenario matrix: timer wakeup jitter at three rates under SCHED_FIFO. Extend as preempt/policy/affinity probes land.",
   "probes": [
-    {"probe": "jitter",
+    {"id": "jitter-1ms-fifo",
+     "probe": "jitter",
      "args": {"period_us": 1000, "iterations": 100000, "policy": "fifo", "priority": 50}},
-    {"probe": "jitter",
+    {"id": "jitter-10ms-fifo",
+     "probe": "jitter",
      "args": {"period_us": 10000, "iterations": 20000, "policy": "fifo", "priority": 50}},
-    {"probe": "jitter",
+    {"id": "jitter-1ms-other",
+     "probe": "jitter",
      "args": {"period_us": 1000, "iterations": 100000, "policy": "other", "priority": 10}}
   ]
 }

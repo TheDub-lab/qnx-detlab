@@ -7,6 +7,7 @@ attaches cleanly to CI artifacts.
 
 import html
 import json
+import os
 
 from . import metrics
 
@@ -118,6 +119,7 @@ def render(results, out_path, scenario_name="run", check_outcome=None):
         _PAGE.replace("__SCENARIO__", html.escape(scenario_name))
         .replace("__BODY__", "\n".join(body))
     )
+    os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(page)
     return out_path

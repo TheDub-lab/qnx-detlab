@@ -47,14 +47,29 @@ scenarios/*.json --(detlab run)--> QEMU QNX 8.0 --SSH--> detlab-probe
 
 | Component | Status | Verified by |
 |---|---|---|
-| `metrics.py`, `check.py` | **implemented, tested** | `tests/test_core.py` (18 assertions, run on host) |
+| `metrics.py`, `check.py` | **implemented, tested** | `tests/test_core.py` (12 tests, run on host) |
 | `report.py` | implemented, exercised by synthetic demo | `detlab demo` |
-| CLI (`run/report/check/demo`) | implemented; `demo` path exercised end-to-end | `detlab demo` |
-| `probe/src/jitter.c` | implemented, **not yet compiled** — needs QNX SDP 8.0 (`qcc -Vgcc_ntox86_64`) | pending first on-target session |
+| CLI (`run/report/check/demo`) | **implemented; `run` verified against live QNX** | smoke + default scenario on QEMU QSTI |
+| `probe/src/jitter.c` | **implemented, compiled with qcc 12.2.0, RUNS ON TARGET** | smoke run: FIFO p50=3.3us vs OTHER p50=1.99ms |
 | `probe/src/{preempt,policy,affinity}.c` | stubs with documented measurement designs | pending |
-| `qemu.py` | written from documented `mkqnximage` interface, **UNVERIFIED against QSTI 0.5.0** | pending first QEMU boot |
+| `scripts/run-qnx-qemu.sh` | **implemented, boots QNX headless, no root needed** | live VM + serial console login |
+| `qemu.py` "existing" mode | **implemented, verified against live VM** | smoke + default runs (SSH root@127.0.0.1:2222) |
+| `qemu.py` "qsti" mode (mkqnximage launch) | **blocked without root**: mkqnximage's check-net requires brctl + virbr0 bridge + setuid qemu-bridge-helper | use scripts/run-qnx-qemu.sh instead |
 | `trace.py` | stub, design documented | pending |
 | CI QNX gate job | commented out, waiting on SDP install + secrets | pending |
+
+## Target notes (QEMU QSTI 8.0.0, image 20260902) — learned the hard way
+
+- Console login: `root`/`root`. SSH: root is blocked by
+  `/etc/ssh/sshd_config.d/98-qnx_qsti.conf` (`PermitRootLogin no`); change to
+  `prohibit-password` and `kill` sshd (slm respawns it). Root's home is
+  `/data/home/root` (`/root` is a symlink).
+- Do NOT run `mkqnximage --build` against the shipped image: it fails
+  ("Non-directory 'bin' has child nodes") and truncates `output/ifs.bin`.
+  Restore with:
+  `cat qnx_sdp8.0_qemu_quickstart_*.tar.gz.* \| tar -xzOf - qemu/output/ifs.bin > qemu/output/ifs.bin`
+- Kernel tick on the image is 1 ms, so late wakeups quantize to ~1 ms and
+  early arrivals are real (measured -32 us to -45 us).
 
 ## First on-target session checklist
 
