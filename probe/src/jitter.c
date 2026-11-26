@@ -53,6 +53,7 @@ int run_jitter(int argc, char *argv[])
     long warmup = arg_long(argc, argv, "warmup", 100);
     const char *policy = arg_str(argc, argv, "policy", "fifo");
     long priority = arg_long(argc, argv, "priority", 50);
+    long tick_us = arg_long(argc, argv, "tick_us", 0);
 
     if (period_us <= 0 || iterations <= 0 || warmup < 0) {
         detlab_emit_error("jitter", "invalid period_us/iterations/warmup");
@@ -105,12 +106,29 @@ int run_jitter(int argc, char *argv[])
         return 1;
     }
 
-    /* Report the kernel tick alongside the results: on PC hardware the
+    /* Report (and optionally set) the kernel tick: on PC hardware the
      * tick quantizes all timers, and hiding it misleads readers. */
     struct _clockperiod cp;
     long tick_ns = -1;
     if (ClockPeriod(CLOCK_MONOTONIC, NULL, &cp, 0) == 0) {
         tick_ns = (long)cp.nsec;
+    }
+
+    /*
+     * Optional tick override: a coarser kernel tick quantizes every timer
+     * expiry up to the tick grid — wakeups land up to a full tick late.
+     * Used to measure how tick misconfiguration destroys determinism.
+     * The original tick is restored before exit.
+     */
+    if (tick_us > 0) {
+        struct _clockperiod ncp;
+        ncp.nsec = tick_us * 1000;
+        ncp.fract = 0;
+        if (ClockPeriod(CLOCK_MONOTONIC, &ncp, NULL, 0) != 0) {
+            detlab_emit_error("jitter", "ClockPeriod(%ldus) failed: %s",
+                              tick_us, strerror(errno));
+            return 1;
+        }
     }
 
     struct itimerspec its;
@@ -155,11 +173,16 @@ int run_jitter(int argc, char *argv[])
     char meta[512];
     snprintf(meta, sizeof(meta),
              "{\"period_us\":%ld,\"iterations\":%ld,\"warmup\":%ld,"
-             "\"policy\":\"%s\",\"priority\":%ld,"
+             "\"policy\":\"%s\",\"priority\":%ld,\"tick_set_us\":%ld,"
              "\"cycles_per_sec\":%llu,\"clock_period_ns\":%ld,"
              "\"signal\":\"SIGEV_PULSE\",\"clock\":\"CLOCK_MONOTONIC\"}",
-             period_us, iterations, warmup, policy, priority,
+             period_us, iterations, warmup, policy, priority, tick_us,
              (unsigned long long)cps, tick_ns);
+
+    /* Restore the original kernel tick if we coarsened it. */
+    if (tick_us > 0) {
+        ClockPeriod(CLOCK_MONOTONIC, &cp, NULL, 0);
+    }
 
     detlab_emit("jitter", meta, samples, recorded);
 

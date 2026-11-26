@@ -35,6 +35,9 @@ def _dump(doc, path):
 def _run_document(scenario, results, meta=None):
     return {
         "scenario": scenario["name"],
+        # The scenario is the timing contract; its check thresholds travel
+        # with the run so --baseline-out can record a gate that can fail.
+        "thresholds": scenario.get("check_thresholds", {}),
         "results": [
             {k: v for k, v in r.items() if k != "samples_ns"}
             for r in results
@@ -90,6 +93,7 @@ def cmd_report(args):
         _dump(
             {
                 "scenario": doc.get("scenario"),
+                "thresholds": doc.get("thresholds", {}),
                 "results": [
                     {"id": r["id"], "summary": r["summary"]}
                     for r in doc["results"]

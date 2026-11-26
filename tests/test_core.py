@@ -107,6 +107,43 @@ class TestCheck(unittest.TestCase):
         ok, failures = check_mod.evaluate(run, baseline)
         self.assertTrue(ok)
 
+    def test_negative_baseline_direction(self):
+        # min_ns is negative (early wakeups): a run identical to baseline
+        # must PASS; only meaningfully-more-negative runs fail.
+        baseline = {
+            "results": [
+                {"id": "s:j", "summary": {"min_ns": -42000, "p99_ns": 300000}}
+            ],
+            "thresholds": {"*": {"regression_pct": 30}},
+        }
+        same = [{"id": "s:j", "summary": {"min_ns": -42000, "p99_ns": 300000}}]
+        ok, failures = check_mod.evaluate(same, baseline)
+        self.assertTrue(ok)
+
+        worse_early = [
+            {"id": "s:j", "summary": {"min_ns": -100000, "p99_ns": 300000}}
+        ]
+        ok, failures = check_mod.evaluate(worse_early, baseline)
+        self.assertFalse(ok)
+        self.assertEqual(failures[0]["metric"], "min_ns")
+
+    def test_floor_catches_rate_violation(self):
+        # A period config error: spacing p50 collapses to the wrong period.
+        baseline = {
+            "results": [
+                {"id": "s:loop", "summary": {"sp_p50_ns": 10000000}}
+            ],
+            "thresholds": {"sp_p50_ns": {"floor_pct": 20}},
+        }
+        healthy = [{"id": "s:loop", "summary": {"sp_p50_ns": 10002000}}]
+        ok, _ = check_mod.evaluate(healthy, baseline)
+        self.assertTrue(ok)
+
+        too_fast = [{"id": "s:loop", "summary": {"sp_p50_ns": 1000000}}]
+        ok, failures = check_mod.evaluate(too_fast, baseline)
+        self.assertFalse(ok)
+        self.assertEqual(failures[0]["direction"], "floor")
+
     def test_baseline_roundtrip(self):
         doc = {"results": [{"id": "a", "summary": self.base_summary()}]}
         with tempfile.NamedTemporaryFile("w", suffix=".json",

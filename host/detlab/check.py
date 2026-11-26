@@ -14,7 +14,12 @@ metric without its own rule.
 
 import json
 
-METRICS = ("min_ns", "mean_ns", "p50_ns", "p99_ns", "p999_ns", "max_ns")
+METRICS = (
+    "min_ns", "mean_ns", "p50_ns", "p99_ns", "p999_ns", "max_ns",
+    # flattened inter-arrival spacing metrics (loop rate fidelity)
+    "sp_min_ns", "sp_mean_ns", "sp_p50_ns", "sp_p99_ns", "sp_p999_ns",
+    "sp_max_ns",
+)
 
 
 def _rule(thresholds, metric):
@@ -35,18 +40,46 @@ def _violations(run_summary, baseline_summary, thresholds):
         base_val = baseline_summary.get(metric)
         if run_val is None or base_val is None:
             continue
-        limit = base_val * (1 + rule.get("regression_pct", 0) / 100)
-        if "max_ns" in rule:
-            limit = max(limit, rule["max_ns"])
-        if run_val > limit:
-            failures.append(
-                {
-                    "metric": metric,
-                    "baseline": base_val,
-                    "run": run_val,
-                    "limit": limit,
-                }
-            )
+        # Ceiling: run may not exceed the baseline by regression_pct (or
+        # the absolute max_ns). Only checked when the rule declares one —
+        # a floor-only rule does not imply a zero-tolerance ceiling.
+        if "regression_pct" in rule or "max_ns" in rule:
+            margin = abs(base_val) * (rule.get("regression_pct", 0) / 100)
+            if base_val < 0:
+                # Negative baseline (e.g. an early-wakeup min): "worse" means
+                # further from zero, i.e. MORE negative. The max_ns floor makes
+                # no sense in this direction and is ignored.
+                limit = base_val - margin
+                exceeded = run_val < limit
+            else:
+                limit = base_val + margin
+                if "max_ns" in rule:
+                    limit = max(limit, rule["max_ns"])
+                exceeded = run_val > limit
+            if exceeded:
+                failures.append(
+                    {
+                        "metric": metric,
+                        "baseline": base_val,
+                        "run": run_val,
+                        "limit": limit,
+                    }
+                )
+        # Floor: the run may not fall BELOW a fraction of the baseline —
+        # a rate contract (spacing p50 ~= period) violated by a loop that
+        # runs too fast (e.g. a period config error).
+        if "floor_pct" in rule and base_val > 0:
+            floor = base_val * (1 - rule["floor_pct"] / 100)
+            if run_val < floor:
+                failures.append(
+                    {
+                        "metric": metric,
+                        "baseline": base_val,
+                        "run": run_val,
+                        "limit": floor,
+                        "direction": "floor",
+                    }
+                )
     return failures
 
 

@@ -40,9 +40,22 @@ def _normalize(result_id, probe_name, doc, args=None):
             period_ns = float(value) * 1000.0
             break
     if period_ns is not None and len(samples) >= 2:
-        summary["spacing"] = metrics.summarize(
+        spacing = metrics.summarize(
             metrics.spacing_series(samples, period_ns)
         )
+        summary["spacing"] = spacing
+        # Flat spacing metrics ride in the summary so the check gate and
+        # baselines can threshold the loop RATE, not just its lateness
+        # (a period config error shows up as spacing p50 ~= wrong period).
+        for key, flat in (
+            ("min_ns", "sp_min_ns"),
+            ("mean_ns", "sp_mean_ns"),
+            ("p50_ns", "sp_p50_ns"),
+            ("p99_ns", "sp_p99_ns"),
+            ("p999_ns", "sp_p999_ns"),
+            ("max_ns", "sp_max_ns"),
+        ):
+            summary[flat] = spacing[key]
 
     return {
         "id": result_id,

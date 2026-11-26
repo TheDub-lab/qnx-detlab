@@ -1,0 +1,13 @@
+{
+  "name": "demo",
+  "description": "Video demo scenario: one 100 Hz SCHED_FIFO control loop. The timing contract gates on p99 wakeup latency; a period config drift (10 ms -> 1 ms) violates it by 30x+.",
+  "probes": [
+    {"id": "control-loop",
+     "probe": "jitter",
+     "args": {"period_us": 10000, "iterations": 1000, "warmup": 50, "policy": "fifo", "priority": 50}}
+  ],
+  "check_thresholds": {
+    "p99_ns": {"regression_pct": 150},
+    "sp_p50_ns": {"floor_pct": 20}
+  }
+}
