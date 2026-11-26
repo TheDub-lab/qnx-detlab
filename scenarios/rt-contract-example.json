@@ -1,0 +1,14 @@
+{
+  "name": "rt-contract-example",
+  "description": "Example timing contract: a 1 kHz control loop that must wake within 50 us of its deadline 99% of the time. Tune period/priority to your system, record a baseline on a good build, then gate every commit with `detlab check`.",
+  "probes": [
+    {"probe": "jitter",
+     "args": {"period_us": 1000, "iterations": 100000, "policy": "fifo", "priority": 63}},
+    {"probe": "affinity",
+     "args": {"pin_cpu": 0, "hogs": 4, "hogs_cpu": 0, "hog_prio": 10}}
+  ],
+  "check_thresholds": {
+    "*": {"regression_pct": 15},
+    "p99_ns": {"max_ns": 50000}
+  }
+}

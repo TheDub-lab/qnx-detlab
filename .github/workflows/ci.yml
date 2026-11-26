@@ -1,0 +1,50 @@
+# detlab CI
+#
+# Job 1 (host logic): runs on every push, no QNX needed.
+# Job 2 (QNX gate): the actual determinism gate — boot QNX 8.0 in QEMU,
+# build the probe with the SDP, run the scenario matrix, `detlab check`
+# against the committed baseline. Requires the QNX SDP 8.0 installer;
+# the headless install path is `qnxsoftwarecenter_clt` (see QSC docs,
+# "Unattended installation on Linux"). License credentials live in
+# GitHub Actions secrets — enable this job once they are configured.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Unit tests (metrics/check logic)
+        run: python -m unittest discover -s tests -v
+      - name: Synthetic demo pipeline
+        run: |
+          pip install -e host
+          detlab demo --out-dir scratch-demo
+
+  # qnx-determinism-gate:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Install QNX SDP 8.0 (headless)
+  #       env:
+  #         MYQNX_USER: ${{ secrets.MYQNX_USER }}
+  #         MYQNX_PASSWORD: ${{ secrets.MYQNX_PASSWORD }}
+  #       run: |
+  #         # qnxsoftwarecenter_clt -cleanInstall \
+  #         #   -destination ~/qnx800 -installBaseline com.qnx.qnx800 \
+  #         #   -myqnx.user="$MYQNX_USER" -myqnx.password="$MYQNX_PASSWORD"
+  #     - name: Build probe
+  #       run: make probe
+  #     - name: Run scenario matrix on QEMU QSTI
+  #       run: detlab run scenarios/default.json --target qsti --out results/run.json
+  #     - name: Determinism gate
+  #       run: detlab check results/run.json --baseline baselines/default.json

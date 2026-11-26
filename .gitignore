@@ -1,0 +1,16 @@
+# build artifacts
+*.o
+detlab-probe
+__pycache__/
+*.pyc
+*.egg-info/
+
+# QNX artifacts
+*.kev
+*.qvm
+
+# harness output
+results/
+reports/
+baselines/*.json.bak
+.detlab/
