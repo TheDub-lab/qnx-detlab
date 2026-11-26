@@ -18,6 +18,7 @@
  */
 
 #include <errno.h>
+#include <process.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,8 +41,9 @@ static int apply_policy(const char *policy, int priority)
     if (strcmp(policy, "rr") == 0) {
         return sched_setscheduler(0, SCHED_RR, &sp);
     }
-    /* "other": default time-sharing policy, priority hint only. */
-    return setprio(0, priority);
+    /* "other": default time-sharing policy. setprio() is gone in QNX 8.0;
+     * sched_setparam() with a priority is the replacement. */
+    return sched_setparam(0, &sp);
 }
 
 int run_jitter(int argc, char *argv[])

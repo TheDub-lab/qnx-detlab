@@ -1,0 +1,34 @@
+{
+  "scenario": "demo",
+  "results": [
+    {
+      "id": "demo:jitter-idle",
+      "summary": {
+        "count": 50000,
+        "min_ns": 1,
+        "mean_ns": 1079.44838,
+        "p50_ns": 1002,
+        "p99_ns": 8359,
+        "p999_ns": 9323,
+        "max_ns": 9774
+      }
+    },
+    {
+      "id": "demo:jitter-loaded",
+      "summary": {
+        "count": 50000,
+        "min_ns": 352,
+        "mean_ns": 1965.3227,
+        "p50_ns": 1403,
+        "p99_ns": 2211,
+        "p999_ns": 61718,
+        "max_ns": 62229
+      }
+    }
+  ],
+  "thresholds": {
+    "*": {
+      "regression_pct": 10
+    }
+  }
+}
