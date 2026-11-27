@@ -21,7 +21,12 @@ so determinism can be gated in CI like any other test.
 | `probe/` | On-target timing probes (`detlab-probe` binary) | C (QNX) |
 | `host/detlab/` | CLI harness: QEMU control, deploy, run, report, check | Python 3.10+, stdlib only |
 | `scenarios/` | Declarative scenario/timing-contract definitions | JSON |
-| `docs/` | Architecture notes and codelab | Markdown |
+| `docs/` | Architecture notes, codelab, submission text | Markdown |
+
+**New to QNX?** Read the codelab —
+[from zero to a determinism CI gate on QNX 8.0](docs/codelab.md) —
+a verified step-by-step walkthrough (free license → headless install →
+QNX in QEMU → first measurement → CI gate).
 
 ## Prerequisites
 
