@@ -1,0 +1,12 @@
+detlab — determinism, gated.
+
+The same gate, wired into CI —
+every commit answers:
+
+  "did this change make the system
+   less deterministic?"
+
+QNX 8.0 · ClockCycles · SIGEV_PULSE
+SCHED_FIFO / SPORADIC
+
+github.com/TheDub-lab/qnx-detlab
