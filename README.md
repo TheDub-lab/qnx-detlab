@@ -79,7 +79,7 @@ arguments on the target; the probe prints one JSON document on stdout.
 
 ## QNX-specific technologies used
 
-- `ClockCycles()`, `SYSPAGE_ENTRY(qtime)->cycles_per_sec` — cycle-accurate timing
+- `ClockCycles()`, `SYSPAGE_ENTRY(qtime)->cycles_per_sec` — cycle-counter-based timing
 - `timer_create` + `SIGEV_PULSE` / `MsgReceivePulse()` — timer wakeup path
 - `SCHED_FIFO` / `SCHED_RR` / `SCHED_SPORADIC` via `sched_setscheduler()` —
   scheduling policy matrix

@@ -1,7 +1,7 @@
 # From zero to a determinism CI gate on QNX 8.0
 
 > A complete, verified walkthrough: free QNX 8.0 license → headless install →
-> QNX in QEMU → your first cycle-accurate timing measurement → a CI gate
+> QNX in QEMU → your first cycle-counter-based timing measurement → a CI gate
 > that fails when a build gets less deterministic.
 >
 > Every command and output below was executed end-to-end on Arch Linux

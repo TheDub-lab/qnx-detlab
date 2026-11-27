@@ -47,7 +47,7 @@ scenarios/*.json --(detlab run)--> QEMU QNX 8.0 --SSH--> detlab-probe
 
 | Component | Status | Verified by |
 |---|---|---|
-| `metrics.py`, `check.py` | **implemented, tested** | `tests/test_core.py` (12 tests, run on host) |
+| `metrics.py`, `check.py` | **implemented, tested** | `tests/test_core.py` (16 tests, run on host) |
 | `report.py` | implemented, exercised by synthetic demo | `detlab demo` |
 | CLI (`run/report/check/demo`) | **implemented; `run` verified against live QNX** | smoke + default scenario on QEMU QSTI |
 | `probe/src/jitter.c` | **implemented, compiled with qcc 12.2.0, RUNS ON TARGET** | smoke run: FIFO p50=3.3us vs OTHER p50=1.99ms |
